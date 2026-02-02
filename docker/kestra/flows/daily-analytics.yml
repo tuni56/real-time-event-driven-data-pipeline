@@ -1,0 +1,46 @@
+id: daily-analytics
+namespace: pipeline
+
+description: Daily analytics and reporting workflow
+
+triggers:
+  - id: daily-schedule
+    type: io.kestra.core.models.triggers.types.Schedule
+    cron: "0 6 * * *"  # Daily at 6 AM
+
+tasks:
+  - id: generate-daily-stats
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: jdbc:postgresql://postgres:5432/pipeline_db
+    username: pipeline_user
+    password: pipeline_pass
+    sql: |
+      SELECT 
+        DATE(created_at) as event_date,
+        event_type,
+        COUNT(*) as event_count,
+        COUNT(DISTINCT user_id) as unique_users,
+        AVG(EXTRACT(EPOCH FROM (processed_at - created_at))) as avg_processing_time_seconds
+      FROM pipeline.events 
+      WHERE created_at >= CURRENT_DATE - INTERVAL '1 day'
+        AND created_at < CURRENT_DATE
+      GROUP BY DATE(created_at), event_type
+      ORDER BY event_date DESC, event_count DESC;
+    store: true
+
+  - id: export-to-csv
+    type: io.kestra.plugin.serdes.csv.CsvWriter
+    from: "{{ outputs.generate-daily-stats.rows }}"
+
+  - id: cleanup-old-data
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: jdbc:postgresql://postgres:5432/pipeline_db
+    username: pipeline_user
+    password: pipeline_pass
+    sql: |
+      DELETE FROM pipeline.events 
+      WHERE created_at < NOW() - INTERVAL '30 days';
+
+  - id: log-summary
+    type: io.kestra.plugin.core.log.Log
+    message: "Daily analytics completed. Processed {{ outputs.generate-daily-stats.rows | length }} event types"

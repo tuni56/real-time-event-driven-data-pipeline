@@ -1,0 +1,29 @@
+id: data-pipeline-flow
+namespace: pipeline
+
+description: Event processing pipeline flow
+
+tasks:
+  - id: check-events
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: jdbc:postgresql://postgres:5432/pipeline_db
+    username: pipeline_user
+    password: pipeline_pass
+    sql: |
+      SELECT 
+        event_type,
+        COUNT(*) as event_count,
+        MAX(created_at) as last_event
+      FROM pipeline.events 
+      WHERE created_at > NOW() - INTERVAL '1 hour'
+      GROUP BY event_type
+    store: true
+
+  - id: log-stats
+    type: io.kestra.core.tasks.log.Log
+    message: "Processed {{ outputs.check-events.size }} event types in the last hour"
+
+triggers:
+  - id: hourly-check
+    type: io.kestra.core.models.triggers.types.Schedule
+    cron: "0 * * * *"

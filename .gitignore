@@ -1,0 +1,21 @@
+# Python / Java
+__pycache__/
+*.pyc
+target/
+
+# Env
+.env
+.env.*
+*.local
+
+# Docker
+*.log
+docker/kafka/data/
+docker/postgres/data/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store

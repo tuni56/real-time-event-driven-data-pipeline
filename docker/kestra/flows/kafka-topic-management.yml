@@ -1,0 +1,32 @@
+id: kafka-topic-management
+namespace: pipeline
+
+description: Manage Kafka topics and partitions
+
+tasks:
+  - id: create-topic
+    type: io.kestra.plugin.core.execution.Bash
+    commands:
+      - |
+        docker exec kafka kafka-topics --create \
+          --topic {{ inputs.topic_name }} \
+          --bootstrap-server localhost:9092 \
+          --partitions {{ inputs.partitions | default(3) }} \
+          --replication-factor 1 \
+          --if-not-exists
+
+  - id: describe-topic
+    type: io.kestra.plugin.core.execution.Bash
+    commands:
+      - docker exec kafka kafka-topics --describe --topic {{ inputs.topic_name }} --bootstrap-server localhost:9092
+
+inputs:
+  - id: topic_name
+    type: STRING
+    required: true
+    description: Name of the Kafka topic to create
+  - id: partitions
+    type: INT
+    required: false
+    defaults: 3
+    description: Number of partitions for the topic

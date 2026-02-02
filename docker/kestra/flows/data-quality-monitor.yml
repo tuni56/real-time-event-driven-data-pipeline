@@ -1,0 +1,37 @@
+id: data-quality-monitor
+namespace: pipeline
+
+description: Monitor data quality and pipeline health
+
+triggers:
+  - id: schedule
+    type: io.kestra.core.models.triggers.types.Schedule
+    cron: "*/5 * * * *"  # Every 5 minutes
+
+tasks:
+  - id: check-event-count
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: jdbc:postgresql://postgres:5432/pipeline_db
+    username: pipeline_user
+    password: pipeline_pass
+    sql: |
+      SELECT 
+        COUNT(*) as total_events,
+        COUNT(DISTINCT event_id) as unique_events,
+        MAX(created_at) as latest_event,
+        COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '5 minutes') as recent_events
+      FROM pipeline.events;
+    store: true
+
+  - id: check-kafka-lag
+    type: io.kestra.plugin.scripts.shell.Commands
+    commands:
+      - docker exec kafka kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group pipeline-consumer
+
+  - id: alert-on-issues
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ outputs.check-event-count.rows[0].recent_events < 10 }}"
+    then:
+      - id: log-alert
+        type: io.kestra.plugin.core.log.Log
+        message: "WARNING: Low event throughput detected - only {{ outputs.check-event-count.rows[0].recent_events }} events in last 5 minutes"
