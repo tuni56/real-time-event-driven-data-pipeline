@@ -19,3 +19,5 @@ docker/postgres/data/
 
 # OS
 .DS_Store
+terraform/.terraform/
+*.tfstate*
