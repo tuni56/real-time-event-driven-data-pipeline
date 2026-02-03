@@ -53,6 +53,20 @@ services:
       timeout: 10s
       retries: 5
 
+  # Schema Registry
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.0
+    container_name: schema-registry
+    ports:
+      - "8082:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:29092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    depends_on:
+      kafka:
+        condition: service_healthy
+
   # Kafka UI for management
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -62,9 +76,12 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
     depends_on:
       kafka:
         condition: service_healthy
+      schema-registry:
+        condition: service_started
 
   # Kestra Workflow Engine
   kestra:
@@ -104,22 +121,64 @@ services:
       kafka:
         condition: service_healthy
 
+  # Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+
+  # Redis for real-time feature store
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
   # Java Application (Producer/Consumer)
   java-app:
     build:
       context: ./java-app
       dockerfile: Dockerfile
     container_name: java-app
+    ports:
+      - "8080:8080"
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       POSTGRES_URL: jdbc:postgresql://postgres:5432/pipeline_db
       POSTGRES_USER: pipeline_user
       POSTGRES_PASSWORD: pipeline_pass
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      REDIS_URL: redis://redis:6379
     depends_on:
       kafka:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      schema-registry:
+        condition: service_started
     profiles:
       - java-app
 
@@ -127,3 +186,5 @@ volumes:
   postgres_data:
   kafka_data:
   kestra_data:
+  grafana_data:
+  redis_data:
