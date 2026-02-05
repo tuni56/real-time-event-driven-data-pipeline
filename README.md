@@ -1,6 +1,6 @@
 # 🚀 Real-Time Event-Driven Data Pipeline
 
-> **FAANG-Ready Production Architecture** - Demonstrating advanced data engineering patterns at scale
+> **Production-Grade Streaming Architecture** - Advanced data engineering patterns at scale
 
 [![Kafka](https://img.shields.io/badge/Apache%20Kafka-231F20?style=flat&logo=apache-kafka&logoColor=white)](https://kafka.apache.org/)
 [![Java](https://img.shields.io/badge/Java%2017-ED8B00?style=flat&logo=openjdk&logoColor=white)](https://openjdk.org/)
@@ -11,9 +11,9 @@
 [![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=flat&logo=prometheus&logoColor=white)](https://prometheus.io/)
 [![Grafana](https://img.shields.io/badge/Grafana-F46800?style=flat&logo=grafana&logoColor=white)](https://grafana.com/)
 
-## 🎯 FAANG-Level Architecture
+## 🎯 Enterprise Architecture
 
-**Enterprise-grade streaming platform** showcasing advanced patterns used at Meta, Google, Amazon, Netflix, and Apple.
+**Scalable streaming platform** implementing industry-standard patterns for high-throughput data processing.
 
 ```mermaid
 graph TB
@@ -196,4 +196,4 @@ This project demonstrates production-ready patterns for:
 
 ---
 
-**Built with ❤️ for modern data teams** | *Showcasing 2+ years of data engineering expertise*
+**Built with ❤️ for modern data teams**
